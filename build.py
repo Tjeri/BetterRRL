@@ -1,53 +1,64 @@
-from typing import List, Dict
-
-replacements: Dict[str, str] = {'.js': '', '/': '_'}
-
-
-def replace(string: str) -> str:
-    result = string
-    for substring, replacement in replacements.items():
-        result = result.replace(substring, replacement)
-    return result
+from os import listdir
+from os.path import join, isfile
+from typing import Optional
 
 
-file_paths: List[str] = [
-    'userscript_settings.js', 'load.js', 'storage.js', 'main.js', 'regex.js', 'features.js', 'utils.js',
-    'module.js',
-    'ads/remove.js', 'follows/highlight.js',
-    'reading/pagemarkers.js', 'reading/bookmark.js', 'reading/pagenumbers.js', 'reading/chapterrelease.js',
-    'reading/navigation.js', 'reading/chapterlist.js', 'reading/hidebottomdonationrow.js'
-]
-files: Dict[str, str] = dict()
+def build_userscript() -> None:
+    content = collect_content()
+    write_file(content)
 
-for file_path in file_paths:
-    with open('js/' + file_path, 'r') as file:
-        files[file_path] = file.read()
 
-full_file = """{userscript_settings}
+def collect_content() -> str:
+    userscript_settings = load_file('userscript_settings.js')
+    utils = collect_utils()
+    main = load_file('main.js')
+    modules = collect_modules()
+    load = load_file('load.js')
+    return """{userscript_settings}
 
 'use strict';
 (function() {{
-{storage}
 {utils}
 
-{main}
-{regex}
-{features}
+{main}        
 
-{module}
-{ads_remove}
-{follows_highlight}
-{reading_pagemarkers}
-{reading_bookmark}
-{reading_pagenumbers}
-{reading_chapterrelease}
-{reading_navigation}
-{reading_chapterlist}
-{reading_hidebottomdonationrow}
+{modules}
 
 {load}
-}})();
-""".format(**{replace(name): files[name] for name in file_paths})
+}})();""".format(userscript_settings=userscript_settings, utils=utils, main=main, modules=modules, load=load)
 
-with open('build/BetterRRL.user.js', 'w') as file:
-    file.write(full_file)
+
+def collect_utils() -> str:
+    utils = ''
+    for file_name in listdir(join('js', 'utils')):
+        if len(utils) > 0:
+            utils += '\n\n'
+        utils += load_file(file_name, 'utils')
+    return utils
+
+
+def collect_modules() -> str:
+    modules = load_file('module.js', 'modules')
+    modules_path = join('js', 'modules')
+    for dir_name in listdir(modules_path):
+        full_path = join(modules_path, dir_name)
+        if isfile(full_path):
+            continue
+        for file_name in listdir(full_path):
+            modules += '\n\n' + load_file(file_name, join('modules', dir_name))
+
+    return modules
+
+
+def load_file(name: str, path: Optional[str] = '') -> str:
+    with open(join('js', path, name), 'r') as file:
+        return file.read()
+
+
+def write_file(content: str) -> None:
+    with open('build/BetterRRL.user.js', 'w') as userscript_file:
+        userscript_file.write(content)
+
+
+if __name__ == "__main__":
+    build_userscript()

@@ -29,7 +29,6 @@ I do want to add an options/settings menu later.
 New modules currently need to be included in:
 - `main.js`: `loadModules()`
 - `features.js`: `Features`
-- `build.py`: `file_paths` and `full_file` string
 
 I will very likely try to make this better in the future.
 
